@@ -20,10 +20,8 @@ A full‑stack web application for managing events, vendors, budgets, and user i
 ### Installation
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/triple-cassini.git
-cd triple-cassini
 
-# Create .env (see .env.example for keys)
+#In  .env (see .env.example for keys)
 cp .env.example .env
 # Edit .env with your MongoDB URI and JWT secret
 
