@@ -69,6 +69,8 @@ triple-cassini/
 - `POST /api/events` – Create a new event.
 - `GET /api/vendors/search` – Retrieve all vendors (used for vendor count).
 - `POST /api/budget/:id/expense` – Add an expense and get budget alerts.
+- `POST /api/budget/:id/expense/:expenseId` – Update an expense and get budget alerts.
+- `DELETE /api/budget/:id/expense/:expenseId` – Delete an expense and get budget alerts.
 
 ## Contributing
 1. Fork the repository.
