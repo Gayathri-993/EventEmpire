@@ -33,7 +33,9 @@ const EventPage = () => {
 
     // Budget State
     const [totalBudget, setTotalBudget] = useState(0);
-    const [newExpense, setNewExpense] = useState({ title: '', amount: '', category: '' });
+    const [expense, setExpense] = useState({ title: '', amount: '', category: '' });
+    const [expenseState, setExpenseState] = useState(null);
+
     const [showBudgetModal, setShowBudgetModal] = useState(false);
 
     useEffect(() => {
@@ -127,28 +129,53 @@ const EventPage = () => {
         }
     };
 
-    const handleAddExpense = async (e) => {
+    const handleDeleteExpense = async (e,expense) => {
         e.preventDefault();
         try {
-            const res = await axios.post(`http://localhost:5000/api/budget/${id}/expense`, {
-                title: newExpense.title,
-                amount: Number(newExpense.amount),
-                category: newExpense.category
-            }, config);
+            const prefix = "http://localhost:5000/api"; // TODO: Move to constant or env
+            const apiUrl = prefix + `/budget/${id}/expense/${expense.id}`;
+            const res = await axios.delete(apiUrl, config);
 
             // Backend returns { budget, alert, remaining }
             setBudget(res.data.budget);
-            setNewExpense({ title: '', amount: '', category: '' });
+            setExpense({ title: '', amount: '', category: '' });
             setShowBudgetModal(false);
 
             if (res.data.alert) {
                 setMessage({ type: 'warning', text: 'Warning: You are close to or have exceeded your budget limit!' });
             } else {
-                setMessage({ type: 'success', text: 'Expense added successfully' });
+                setMessage({ type: 'success', text: 'Expense deleted successfully' });
             }
         } catch (err) {
             console.error(err);
-            setMessage({ type: 'danger', text: 'Error adding expense' });
+            setMessage({ type: 'danger', text: err.response.data?.message ?? 'Error deleting expense' });
+        }
+    };
+
+    const handleExpenseSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const prefix = "http://localhost:5000/api"; // TODO: Move to constant or env
+            const apiUrl = prefix + (expenseState !==null && expenseState === "update" ? `/budget/${id}/expense/${expense.id}` : `/budget/${id}/expense`);
+            const res = await axios.post(apiUrl, {
+                title: expense.title,
+                amount: Number(expense.amount),
+                category: expense.category
+            }, config);
+
+            // Backend returns { budget, alert, remaining }
+            setBudget(res.data.budget);
+            setExpense({ title: '', amount: '', category: '' });
+            setShowBudgetModal(false);
+
+            if (res.data.alert) {
+                setMessage({ type: 'warning', text: 'Warning: You are close to or have exceeded your budget limit!' });
+            } else {
+                setMessage({ type: 'success', text: 'Expense '+(expenseState !==null && expenseState === "update" ? "added" : "updated") + ' successfully' });
+            }
+        } catch (err) {
+            console.error(err);
+            setMessage({ type: 'danger', text: err.response.data?.message ?? 'Error submitting expense' });
         }
     };
 
@@ -251,7 +278,7 @@ const EventPage = () => {
                     <Tab.Pane eventKey="budget">
                         <div className="d-flex justify-content-between align-items-center mb-3">
                             <h3>Budget Management</h3>
-                            <Button variant="success" onClick={() => setShowBudgetModal(true)}>
+                            <Button variant="success" onClick={() => {setExpenseState("add");setShowBudgetModal(true)}}>
                                 <i className="bi bi-plus-circle me-2"></i> Add Expense
                             </Button>
                         </div>
@@ -305,6 +332,8 @@ const EventPage = () => {
                                             <td>{expense.title}</td>
                                             <td>{expense.category}</td>
                                             <td>₹{expense.amount.toFixed(2)}</td>
+                                            <td><i className="bi bi-pencil-square me-2" onClick={() => {console.log(expense);setShowBudgetModal(true); setExpense(expense); setExpenseState("update")}}></i></td>
+                                            <td><i className="bi bi-trash me-2" onClick={(e)=>{handleDeleteExpense(e,expense)}}></i></td>
                                         </tr>
                                     ))
                                 ) : (
@@ -443,30 +472,30 @@ const EventPage = () => {
             {/* Add Expense Modal */}
             <Modal show={showBudgetModal} onHide={() => setShowBudgetModal(false)}>
                 <Modal.Header closeButton>
-                    <Modal.Title>Add Expense</Modal.Title>
+                    <Modal.Title>{expenseState!==null && expenseState === "update" ? "Update Expense" : "Add Expense"}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Form onSubmit={handleAddExpense}>
+                    <Form onSubmit={handleExpenseSubmit}>
                         <Form.Group className="mb-3">
                             <Form.Label>Title</Form.Label>
                             <Form.Control
                                 type="text"
-                                value={newExpense.title}
-                                onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })}
+                                value={expense.title}
+                                onChange={(e) => setExpense({ ...expense, title: e.target.value })}
                                 required
                             />
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label>Category</Form.Label>
                             <Form.Select
-                                value={newExpense.category}
-                                onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
+                                value={expense.category}
+                                onChange={(e) => setExpense({ ...expense, category: e.target.value })}
                                 required
                             >
                                 <option value="">Select Category</option>
                                 <option value="Venue">Venue</option>
                                 <option value="Catering">Catering</option>
-                                <option value="Decoration">Decoration</option>
+                                <option value="Decorations">Decorations</option>
                                 <option value="Entertainment">Entertainment</option>
                                 <option value="Other">Other</option>
                             </Form.Select>
@@ -475,8 +504,10 @@ const EventPage = () => {
                             <Form.Label>Amount</Form.Label>
                             <Form.Control
                                 type="number"
-                                value={newExpense.amount}
-                                onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                                value={expense.amount}
+                                min={1}
+                                max={budget!=null ? budget.totalBudget : 10000000}
+                                onChange={(e) => setExpense({ ...expense, amount: e.target.value })}
                                 required
                             />
                         </Form.Group>
@@ -485,7 +516,7 @@ const EventPage = () => {
                                 Cancel
                             </Button>
                             <Button variant="primary" type="submit">
-                                Add Expense
+                                {expenseState!==null && expenseState === "update" ? "Update Expense" : "Add Expense"}
                             </Button>
                         </div>
                     </Form>
