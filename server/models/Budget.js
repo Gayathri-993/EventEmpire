@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { EXPENSE_TYPE_ENUM } = require('../utils/constants');
 
 const budgetSchema = new mongoose.Schema({
     event: {
@@ -13,11 +14,12 @@ const budgetSchema = new mongoose.Schema({
     },
     expenses: [
         {
+            id: {type: String, required: true},
             title: String,
             amount: Number,
             category: {
                 type: String,
-                enum: ['Venue', 'Catering', 'Decorations', 'Other'],
+                enum: EXPENSE_TYPE_ENUM,
                 default: 'Other',
             },
             date: { type: Date, default: Date.now },
